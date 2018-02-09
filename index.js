@@ -19,7 +19,7 @@ Promise.resolve()
   var Film = sequelize.define('films',
 		{
 			title: Sequelize.STRING,
-      release_date: Sequelize.STRING,
+      release_date: Sequelize.DATE,
 			tagline: Sequelize.STRING,
 			genre_id: Sequelize.INTEGER,
 		}, {
@@ -50,12 +50,33 @@ function getFilmRecommendations(req, res) {
       res.status(500).send("Cannot find a film matching this ID.")
     }
     else {
+      let upperRelease = new Date(paramsFilm.release_date)
+      let lowerRelease = new Date(paramsFilm.release_date)
+      upperRelease.setFullYear(upperRelease.getFullYear() + 15)
+      lowerRelease.setFullYear(lowerRelease.getFullYear() - 15)
+
+      console.log(upperRelease)
+      console.log(lowerRelease)
+
       Film.findAll({
+        order: [ ['id', 'ASC'] ],
         where: {
-          genre_id: paramsFilm.genre_id
+          genre_id: paramsFilm.genre_id,
+          release_date: {
+            $and: {
+              $gt: lowerRelease,
+              $lt: upperRelease
+            }
+          }
         }
-      }).then( (filmRecommendations) => {
-        res.json(filmRecommendations)
+      }).then( (filmRecs) => {
+        if (filmRecs == null) {
+          res.status(500).send("We have no recommendations for this film.")
+        }
+        else {
+          // let filteredRecs = filmRecs
+          res.json(filmRecs)
+        }
       })
     }
 
