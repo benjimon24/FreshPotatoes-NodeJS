@@ -6,6 +6,8 @@ const sqlite = require('sqlite'),
 
 const { PORT=3000, NODE_ENV='development', DB_PATH='./db/database.db' } = process.env;
 
+const THIRD_PARTY_API = 'http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1?films='
+
 // START SERVER
 Promise.resolve()
   .then(() => app.listen(PORT, () => console.log(`App listening on port ${PORT}`)))
@@ -30,23 +32,24 @@ Promise.resolve()
 // ROUTES
 app.get('/films/:id/recommendations', getFilmRecommendations);
 
-function isHighlyRated(filmID, callback){
-  // for each film, we need to see if they have atleast 5 reviews with the average rating being over 4.0
-
-  request.get(`http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1?films=${filmID}`)
-  // request.get(`http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1?films=${filmID}`, (error, response, body) => {
-    // let reviews = JSON.parse(body)[0].reviews.map( (review) =>  parseInt(review.rating) )
-    // let averageRating = reviews.reduce( (sum, rating) => sum + rating) / reviews.length
-    // let highlyRated;
-    // if (reviews.length > 5 && averageRating > 4) {
-    //   highlyRated = true
-    // } else {
-    //   highlyRated = false
-    // }
-    // callback(highlyRated);
-    // callback(averageRating)
-  // })
+function filterByReviews(res, films){
+  let filmIDs = relatedFilms.map( film => film.id).join(',')
+  request.get( THIRD_PARTY_API + filmIDs, (error, response, body) => {
+    reviews = JSON.parse(body)
+    reviews = reviews.filter (review => {
+      return review.reviews.length >= 5
+    })
+    reviews = reviews.map ( filmReviews => {
+            let ratings = filmReviews.reviews.map( review => review.rating)
+            filmReviews.averageRating = ratings.reduce( (sum, rating) => sum + rating) / ratings.length
+            return filmReviews
+    }).filter ( filmReviews => {
+      return filmReviews.averageRating > 4
+    })
+    res.json(reviews)
+  })
 }
+
 
 function findRelatedFilms(parent){
   // find all films matching genre and within +/- 15 years of release date, and sort them by ID
@@ -66,32 +69,17 @@ function findRelatedFilms(parent){
         }
       }
     }
-  })
+  }, raw: true)
 }
 
 
 
 
 function getFilmRecommendations(req, res) {
-  // find parent film by id from parameters
   Film.findById(req.params.id).then( (parentFilm) => {
-    if (parentFilm == null) {
-      // cannot find parent film
-      res.status(500).send("Cannot find a film matching this ID.")
-    }
-    else {
-      findRelatedFilms(parentFilm).then( (filmRecommendations) => {
-        if (filmRecommendations == null) {
-          // no matching films with genre and close release date
-          res.status(500).send("We have no recommendations for this film.")
-        }
-        else {
-          // isHighlyRated(req.params.id, (averageRating) => {test = averageRating })
-          // filmRecommendations = filmRecommendations.filter((film) => {})
-          res.json(filmRecommendations)
-        }
+      findRelatedFilms(parentFilm).then( (relatedFilms) => {
+        filterByReviews(res, relatedFilms)
       })
-    }
 
   })
 
