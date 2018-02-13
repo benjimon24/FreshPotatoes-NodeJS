@@ -55,7 +55,7 @@ function handleMissingRoute(req, res){
   });
 }
 
-
+// ROUTE HANDLER
 function getFilmRecommendations(req, res) {
   let filmRecommendations = {
     recommendations: [],
