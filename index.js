@@ -38,24 +38,23 @@ Promise.resolve()
     timestamps: false
   })
 
-  Film
+  Film.belongsTo(Genre, {
+    foreignKey: 'genre_id'
+  })
+  Genre.hasMany(Film, {
+    foreignKey: 'genre_id'
+  })
 
 // ROUTES
-app.get('/films/:id', getFilm);
 app.get('/films/:id/recommendations', getFilmRecommendations);
 
-function getFilm(req, res){
-  Film.findById(req.params.id).then( (film) => {
-    res.json(film)
-  })
-}
 
 function getFilmRecommendations(req, res) {
   let filmRecommendations = {
     recommendations: [],
     meta: {
-      offset: 0,
-      limit: 10
+      offset: req.query.offset || 0,
+      limit: req.query.limit || 10
     },
   };
 
@@ -78,6 +77,10 @@ function findRelatedFilms(parent){
 
   return Film.findAll({
     order: [ ['id', 'ASC'] ],
+    attributes: ['id', 'title', 'releaseDate'],
+    include: {
+      model: Genre,
+      attributes: ['name']},
     where: {
       genre_id: parent.genre_id,
       release_date: {
@@ -86,7 +89,7 @@ function findRelatedFilms(parent){
           $lt: upperRelease
         }
       }
-    }, raw: true
+    }
   })
 }
 
@@ -96,6 +99,8 @@ function filterByReviews(films, callback){
     reviews = JSON.parse(body)
 
     let recommendedFilms = films.map( film => {
+      film = film.toJSON();
+      film.genre = film.genre.name
       film.reviews = reviews.find( review => { return review.film_id == film.id }).reviews
       return film
     }).filter (film => {
