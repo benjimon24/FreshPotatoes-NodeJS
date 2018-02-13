@@ -50,7 +50,6 @@ app.get('/films/:id/recommendations', getFilmRecommendations);
 app.get('*', handleMissingRoute);
 
 function handleMissingRoute(req, res){
-  console.log(res.body)
   res.status(404).send({
     message : 'No such route exists.'
   });
@@ -87,7 +86,6 @@ function getFilmRecommendations(req, res) {
 }
 
 function findRelatedFilms(parent){
-  // find all films matching genre and within +/- 15 years of release date, and sort them by ID
   let upperRelease = new Date(parent.releaseDate)
   let lowerRelease = new Date(parent.releaseDate)
   upperRelease.setFullYear(upperRelease.getFullYear() + 15)
