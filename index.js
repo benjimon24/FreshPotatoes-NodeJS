@@ -47,6 +47,14 @@ Promise.resolve()
 
 // ROUTES
 app.get('/films/:id/recommendations', getFilmRecommendations);
+app.get('*', handleMissingRoute);
+
+function handleMissingRoute(req, res){
+  console.log(res.body)
+  res.status(404).send({
+    message : 'No such route exists.'
+  });
+}
 
 
 function getFilmRecommendations(req, res) {
@@ -61,10 +69,20 @@ function getFilmRecommendations(req, res) {
   Film.findById(req.params.id).then( (parentFilm) => {
       findRelatedFilms(parentFilm).then( (relatedFilms) => {
         filterByReviews(relatedFilms, (recommendedFilms) => {
+          recommendedFilms = offsetFilms(recommendedFilms, filmRecommendations.meta.offset)
+          recommendedFilms = limitFilms(recommendedFilms, filmRecommendations.meta.limit)
           filmRecommendations.recommendations = recommendedFilms
           res.json(filmRecommendations)
         })
+      }).catch( (error) => {
+        res.status(422).send({
+          "message" : "No related films could be found."
+        });
       })
+  }).catch ( (error) => {
+    res.status(422).send({
+      "message" : "No film matches this ID."
+    });
   })
 }
 
@@ -117,4 +135,11 @@ function filterByReviews(films, callback){
   })
 }
 
+function limitFilms(films, limit){
+  return films.slice(0, limit)
+}
+
+function offsetFilms(films, offset){
+  return films.slice(offset, films.length)
+}
 module.exports = app;
