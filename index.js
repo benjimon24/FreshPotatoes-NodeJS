@@ -49,13 +49,13 @@ Promise.resolve()
 app.get('/films/:id/recommendations', getFilmRecommendations);
 app.get('*', handleMissingRoute);
 
+// ROUTE HANDLER
 function handleMissingRoute(req, res){
   res.status(404).send({
     message : 'No such route exists.'
   });
 }
 
-// ROUTE HANDLER
 function getFilmRecommendations(req, res) {
   let filmRecommendations = {
     recommendations: [],
