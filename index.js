@@ -68,28 +68,28 @@ function getFilmRecommendations(req, res) {
   Film.findById(req.params.id).then( (parentFilm) => {
       findRelatedFilms(parentFilm).then( (relatedFilms) => {
         filterByReviews(relatedFilms, (recommendedFilms) => {
-          recommendedFilms = offsetFilms(recommendedFilms, filmRecommendations.meta.offset)
-          recommendedFilms = limitFilms(recommendedFilms, filmRecommendations.meta.limit)
-          filmRecommendations.recommendations = recommendedFilms
-          res.json(filmRecommendations)
+          recommendedFilms = offsetFilms(recommendedFilms, filmRecommendations.meta.offset);
+          recommendedFilms = limitFilms(recommendedFilms, filmRecommendations.meta.limit);
+          filmRecommendations.recommendations = recommendedFilms;
+          res.json(filmRecommendations);
         })
       }).catch( (error) => {
         res.status(422).send({
-          "message" : "No related films could be found."
+          'message' : 'No related films could be found.'
         });
       })
   }).catch ( (error) => {
     res.status(422).send({
-      "message" : "No film matches this ID."
+      'message' : 'No film matches this ID.'
     });
   })
 }
 
 function findRelatedFilms(parent){
-  let upperRelease = new Date(parent.releaseDate)
-  let lowerRelease = new Date(parent.releaseDate)
-  upperRelease.setFullYear(upperRelease.getFullYear() + 15)
-  lowerRelease.setFullYear(lowerRelease.getFullYear() - 15)
+  let upperRelease = new Date(parent.releaseDate);
+  let lowerRelease = new Date(parent.releaseDate);
+  upperRelease.setFullYear(upperRelease.getFullYear() + 15);
+  lowerRelease.setFullYear(lowerRelease.getFullYear() - 15);
 
   return Film.findAll({
     order: [ ['id', 'ASC'] ],
@@ -106,38 +106,38 @@ function findRelatedFilms(parent){
         }
       }
     }
-  })
+  });
 }
 
 function filterByReviews(films, callback){
-  let filmIDs = films.map( film => film.id).join(',')
+  let filmIDs = films.map( film => film.id).join(',');
   request.get( THIRD_PARTY_API + filmIDs, (error, response, body) => {
-    reviews = JSON.parse(body)
+    reviews = JSON.parse(body);
 
     let recommendedFilms = films.map( film => {
       film = film.toJSON();
-      film.genre = film.genre.name
-      film.reviews = reviews.find( review => { return review.film_id == film.id }).reviews
-      return film
+      film.genre = film.genre.name;
+      film.reviews = reviews.find( review => { return review.film_id == film.id }).reviews;
+      return film;
     }).filter (film => {
-      return film.reviews.length >= 5
+      return film.reviews.length >= 5;
     }).map ( film => {
-      let ratings = film.reviews.map ( review => review.rating )
-      film.averageRating = Math.round((ratings.reduce( (sum, rating) => sum + rating) / ratings.length) * 100) / 100
-      film.reviews = film.reviews.length
-      return film
+      let ratings = film.reviews.map ( review => review.rating );
+      film.averageRating = Math.round((ratings.reduce( (sum, rating) => sum + rating) / ratings.length) * 100) / 100;
+      film.reviews = film.reviews.length;
+      return film;
     }).filter ( film => {
-      return film.averageRating > 4
+      return film.averageRating > 4;
     })
-    callback(recommendedFilms)
+    callback(recommendedFilms);
   })
 }
 
 function limitFilms(films, limit){
-  return films.slice(0, limit)
+  return films.slice(0, limit);
 }
 
 function offsetFilms(films, offset){
-  return films.slice(offset, films.length)
+  return films.slice(offset, films.length);
 }
 module.exports = app;
